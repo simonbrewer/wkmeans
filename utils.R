@@ -1,9 +1,8 @@
-set.seed(42)
 library(tidyverse)
 
+## ----------------------------------------------------------------------------
 ## k-means by hand from
 ## https://rpubs.com/hasiegler/926806
-
 wkmeans <- function(data, k, w = NULL, pca = FALSE) {
   
   #option for Principal Component Analysis
@@ -115,14 +114,9 @@ wkmeans <- function(data, k, w = NULL, pca = FALSE) {
   return(result)
 }
 
-iris2 <- iris %>% 
-  select(-Species)
-
-head(iris2)
-
-wkmeans(data = iris2, k = 3)
-
-## Second example with clouds
+## ----------------------------------------------------------------------------
+## Function to create clouds of points 
+## https://anderfernandez.com/en/blog/code-k-means-from-scratch-in-r/
 rcloud <- function(n, R, x_cent=0, y_cent=0){
   r = R * sqrt(runif(n))
   theta = runif(n) * 2 * pi
@@ -132,33 +126,3 @@ rcloud <- function(n, R, x_cent=0, y_cent=0){
   z = data.frame(x = x, y = y)
   return(z)
 }
-
-## 
-# We create points around three different points.
-grp1 <- rcloud(n = 20, R = 10, x_cent =  5, y_cent = 30)
-grp2 <- rcloud(n = 20, R = 10, x_cent = 20, y_cent = 10)
-grp3 <- rcloud(n = 20, R = 10, x_cent = 50, y_cent = 50)
-
-
-dat = data.frame(
-  rbind(grp1, grp2, grp3),
-  id = 1:60,
-  group = rep(1:3, each = 20)
-)
-
-set.seed(42)
-dat.kmeans = wkmeans(data = dat, k = 3)
-plot(dat$x, dat$y, col = dat.kmeans$clusters, pch = 16)
-points(dat.kmeans$centers$x, dat.kmeans$centers$y,col = 1:3)
-
-wgts <- rep(1, nrow(dat))
-dat.kmeans = wkmeans(data = dat, k = 3, w = wgts)
-plot(dat$x, dat$y, col = dat.kmeans$clusters, pch = 16)
-points(dat.kmeans$centers$x, dat.kmeans$centers$y,col = 1:3)
-
-wgts[which.min(dat$x)] <- 1e4
-wgts[which.max(dat$x)] <- 1e4
-wgts[which.min(dat$y)] <- 1e4
-dat.kmeans = wkmeans(data = dat, k = 3, w = wgts)
-plot(dat$x, dat$y, col = dat.kmeans$clusters, pch = 16)
-points(dat.kmeans$centers$x, dat.kmeans$centers$y,col = 1:3, cex = 2)
