@@ -109,7 +109,7 @@ wkmeans <- function(data, k, w = NULL, pca = FALSE) {
   
   result <- list("sizes" = sizes, 
                  "centers" = clusters,
-                 "clusters Vector" = cluster_vec,
+                 "clusters" = cluster_vec,
                  "iterations" = iter)
   return(result)
 }
