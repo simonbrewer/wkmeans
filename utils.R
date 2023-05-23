@@ -1,46 +1,64 @@
-library(tidyverse)
+library(dplyr)
 
 ## ----------------------------------------------------------------------------
+## k-means control loop
+wkmeans <- function(data, k, w = NULL, nstart = 10) {
+  err <- centers <- cluster_vec <- iterations <- list()
+  for (i in 1:nstart) {
+    print(paste0("Doing ", i, " of ", nstart))
+    ## Pick random points to initialize centroids
+    rand <- sample(1:nrow(data), k)
+    
+    ## Extract cluster centroids 
+    clusters <- data[rand,]
+    
+    ## Run k-means
+    wkm <- wkmeans_single(data, k, clusters, w = w)
+    
+    ## Store error, cluster centers and cluster assignment
+    err[[i]] <- wkm$err
+    centers[[i]] <- wkm$centers
+    cluster_vec[[i]] <- wkm$clusters
+    iterations[[i]] <- wkm$iterations
+    
+  }
+  
+  min_id <- which.min(err)
+  
+  result <- list("errors" = err[[min_id]], 
+                 "centers" = centers[[min_id]],
+                 "clusters" = cluster_vec[[min_id]],
+                 "iterations" = iterations[[min_id]])
+  return(result)
+}
+
 ## k-means by hand from
 ## https://rpubs.com/hasiegler/926806
-
-wkmeans <- function(data, k, w = NULL) {
-  
-  #randomly select the indices of k rows to use as starting
-  #centers of the k clusters
-  rand <- sample(1:nrow(data), k)
-  
-  #data frame with k observations that were randomly selected
-  clusters <- data[rand,]
-  
-  #empty vectors that will contain the cluster assignments for each observation
+wkmeans_single <- function(data, k, clusters, w = NULL) {
+  ## Vectors to store cluster assignments 
   cluster_vec <- c()
-  last_vec <- c(0)
+  last_vec <- c(0) ## For comparison
   
-  #iteration counter
+  ## Iteration counter
   iter <- 1
   
-  #algorithm will stop once stop is equal to 1
+  ## Stopping condition (set to 1 when clusters are stable)
   stop <- 0
   
+  ## Error vector
+  sse <- rep(NA, nrow(data))
+  
   while (stop == 0) {
-    
-    #loop through each observation
+    ## Loop through each observation
     for (i in 1:nrow(data)) {
-      
-      #find the euclidean distance of the ith observation to each of the clusters
-      dist <- data[i,] %>%
-        rbind(clusters) %>%
-        dist()
-      
-      #find which cluster the ith observation has the smallest distance with
-      i_cluster <- dist[1:k] %>%
-        which.min()
-      
-      #add the cluster assignment for the ith observation to a vector
-      #containing the cluster assignments of all observations
+      ## Calculate distance between observation and centroids
+      dist <- dist(rbind(data[i,], clusters))
+      ## Find centroid with smallest distance
+      i_cluster <- which.min(dist[1:k])
+      ## Set assignment
       cluster_vec[i] <- i_cluster
-      
+      ## Calculate error
+      sse[i] <- sum(data[i,] - clusters[i_cluster, ])^2
     }
     
     #check to see if the cluster assignments have changed at all since
@@ -61,7 +79,7 @@ wkmeans <- function(data, k, w = NULL) {
         group_by(cluster_vec) %>%
         summarise(across(everything(), ~ mean(.x)))
     } else {
-      print("Using weights")
+      # print("Using weights")
       clusters <- data %>%
         cbind(cluster_vec, w) %>%
         group_by(cluster_vec) %>%
@@ -75,30 +93,17 @@ wkmeans <- function(data, k, w = NULL) {
     iter <- iter + 1
     
     if (stop == 1) {
+      err = sum(sse)
+      
       sizes <- data %>% 
         cbind(cluster_vec) %>% 
         count(cluster_vec) %>% 
         pull(n)
-      
-      if (is.null(w)) {
-        clusters <- data %>%
-        cbind(cluster_vec) %>%
-        group_by(cluster_vec) %>%
-        summarise(across(everything(), ~ mean(.x)))
-      } else {
-        print("Using weights")
-        clusters <- data %>%
-          cbind(cluster_vec, w) %>%
-          group_by(cluster_vec) %>%
-          summarise(across(everything(), ~ weighted.mean(.x, w = w))) %>%
-          select(-w)
-      }
-      
     }
-    
   }
   
-  result <- list("sizes" = sizes, 
+  result <- list("err" = err,
+                 "sizes" = sizes, 
                  "centers" = clusters,
                  "clusters" = cluster_vec,
                  "iterations" = iter)
