@@ -3,15 +3,8 @@ library(tidyverse)
 ## ----------------------------------------------------------------------------
 ## k-means by hand from
 ## https://rpubs.com/hasiegler/926806
-wkmeans <- function(data, k, w = NULL, pca = FALSE) {
-  
-  #option for Principal Component Analysis
-  if(pca == TRUE){
-    data <- princomp(data)
-    data <- data$scores %>%
-      as.data.frame() %>%
-      select(Comp.1, Comp.2)
-  }
+
+wkmeans <- function(data, k, w = NULL) {
   
   #randomly select the indices of k rows to use as starting
   #centers of the k clusters
@@ -68,8 +61,7 @@ wkmeans <- function(data, k, w = NULL, pca = FALSE) {
         group_by(cluster_vec) %>%
         summarise(across(everything(), ~ mean(.x)))
     } else {
-      print("WWW")
-      print(w)
+      print("Using weights")
       clusters <- data %>%
         cbind(cluster_vec, w) %>%
         group_by(cluster_vec) %>%
@@ -94,8 +86,7 @@ wkmeans <- function(data, k, w = NULL, pca = FALSE) {
         group_by(cluster_vec) %>%
         summarise(across(everything(), ~ mean(.x)))
       } else {
-        print("WWW")
-        print(w)
+        print("Using weights")
         clusters <- data %>%
           cbind(cluster_vec, w) %>%
           group_by(cluster_vec) %>%
