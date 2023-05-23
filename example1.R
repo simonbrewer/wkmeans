@@ -1,5 +1,6 @@
 set.seed(42)
 library(tidyverse)
+source("utils.R")
 
 iris2 <- iris %>% 
   select(-Species)
